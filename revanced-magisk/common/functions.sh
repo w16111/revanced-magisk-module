@@ -107,7 +107,7 @@ install_script() {
   esac
   [ "$(grep "#!/system/bin/sh" $1)" ] || sed -i "1i #!/system/bin/sh" $1
   local i
-  for i in "MODPATH" "LIBDIR" "MODID" "INFO" "MODDIR"; do
+  for i in "MODPATH" "MODID" "INFO" "MODDIR"; do
     case $i in
     "MODPATH") sed -i "1a $i=$NVBASE/modules/$MODID" $1 ;;
     "MODDIR") sed -i "1a $i=\${0%/*}" $1 ;;
@@ -135,18 +135,9 @@ prop_process() {
 
 # Set variables
 [ -z $ARCH32 ] && ARCH32="$(echo $ABI32 | cut -c-3)"
-[ $API -lt 26 ] && DYNLIB=false
-[ -z $DYNLIB ] && DYNLIB=false
 [ -z $DEBUG ] && DEBUG=false
 INFO=$NVBASE/modules/.$MODID-files
-ORIGDIR="$MAGISKTMP/mirror"
-if $DYNLIB; then
-  LIBPATCH="\/vendor"
-  LIBDIR=/system/vendor
-else
-  LIBPATCH="\/system"
-  LIBDIR=/system
-fi
+
 if ! $BOOTMODE; then
   ui_print "- Only uninstall is supported in recovery"
   ui_print "  Uninstalling!"
@@ -227,19 +218,7 @@ done
 $IS64BIT || for i in $(find $MODPATH/system -type d -name "lib64"); do rm -rf $i 2>/dev/null; done
 [ -d "/system/priv-app" ] || mv -f $MODPATH/system/priv-app $MODPATH/system/app 2>/dev/null
 [ -d "/system/xbin" ] || mv -f $MODPATH/system/xbin $MODPATH/system/bin 2>/dev/null
-if $DYNLIB; then
-  for FILE in $(find $MODPATH/system/lib* -type f 2>/dev/null | sed "s|$MODPATH/system/||"); do
-    [ -s $MODPATH/system/$FILE ] || continue
-    case $FILE in
-    lib*/modules/*) continue ;;
-    esac
-    mkdir -p $(dirname $MODPATH/system/vendor/$FILE)
-    mv -f $MODPATH/system/$FILE $MODPATH/system/vendor/$FILE
-    [ "$(ls -A $(dirname $MODPATH/system/$FILE))" ] || rm -rf $(dirname $MODPATH/system/$FILE)
-  done
-  # Delete empty lib folders (busybox find doesn't have this capability)
-  toybox find $MODPATH/system/lib* -type d -empty -delete >/dev/null 2>&1
-fi
+ui_print "   by j-hc (github.com/j-hc)"
 
 # Set permissions
 ui_print " "
